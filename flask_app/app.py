@@ -1,4 +1,3 @@
-from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, redirect, url_for, request, jsonify
 from flask_bootstrap import Bootstrap5
@@ -7,6 +6,7 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length
 import secrets
 
+import os
 
 # this variable, db, will be used for all SQLAlchemy commands
 db = SQLAlchemy()
@@ -16,7 +16,12 @@ bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://LIMSUSER:LIMSPWD@LIMSALIAS/lims2'
+
+lims_user = os.environ['AIBS_LIMS_USER']
+lims_pwd = os.environ['AIBS_LIMS_PWD']
+lims_alias = os.environ['AIBS_LIMS_ALIAS']
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://{lims_user}:{lims_pwd}@{lims_alias}/lims2'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['WTF_CSRF_ENABLED'] = False
 
