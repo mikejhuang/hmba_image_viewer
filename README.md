@@ -2,7 +2,7 @@
 
 
 **Note:** In order to deploy the app, you need to set the following
-environment variabled.
+environment variables.
 
 ```
 AIBS_LIMS_USER - your LIMS user name
