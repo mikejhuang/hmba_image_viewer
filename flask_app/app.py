@@ -424,7 +424,10 @@ def populate_metadata(specimen_name):
     specimen_data = {
         'id': specimen.id,
         'name': specimen.name, 
-        'donor_id': specimen.donor_id, 
+        'donor_id': specimen.donor_id,
+        'parent_x_coord': specimen.parent_x_coord,
+        'parent_y_coord': specimen.parent_y_coord,
+        'parent_z_coord': specimen.parent_z_coord,
         'parent_id': "None",
         'storage_directory': "None",
         'plane_of_section': "None",
