@@ -277,6 +277,27 @@ class Slide(db.Model):
     parent_id = db.Column(db.String)
     slide_group_z_index = db.Column(db.String)
 
+class Scan(db.Model):
+    __tablename__ = 'scans'
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(255), nullable=False)
+    archived_at = db.Column(db.DateTime)
+    superseded = db.Column(db.Boolean, default=False, nullable=False)
+    slide_id = db.Column(db.Integer)
+    scanner_id = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False)
+    image_id = db.Column(db.Integer)
+    state = db.Column(db.String(255), nullable=False)
+    resolution = db.Column(db.Float, nullable=False)
+    bits_per_component = db.Column(db.Integer)
+    number_of_components = db.Column(db.Integer)
+    rotation = db.Column(db.Float)
+    offset_x = db.Column(db.Integer)
+    offset_y = db.Column(db.Integer)
+    treatment_id = db.Column(db.Integer)
+    project_id = db.Column(db.Integer)
+
 class ImageSeries(db.Model):
     __tablename__ = "image_series"
     id = db.Column(db.String, primary_key = True)
@@ -468,6 +489,7 @@ def populate_metadata(specimen_name):
         'treatment': {}, 
         'all_image_names': [],
         "spatial_blocking_plan": [],
+        "sub_image_resolution": [],
     }
     
     if specimen.parent_id:
@@ -535,7 +557,8 @@ def populate_metadata(specimen_name):
             if slide:
                 has_sub_image = True
                 storage_dir = slide.storage_directory
-
+                scan = Scan.query.filter_by(slide_id=Slide.id).first()
+                specimen_data["sub_image_resolution"].append(scan.resolution)
                 # will only add the storage_directory to the list if it's not already in it
                 if (" " + storage_dir) not in specimen_data['sub_image_storage_directory']:
                     specimen_data['sub_image_storage_directory'].append(" " + storage_dir)
