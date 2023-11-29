@@ -322,6 +322,29 @@ class Treatment(db.Model):
     updated_at = db.Column(db.String)
     public = db.Column(db.String)
 
+class WellKnownFile(db.Model):
+    __tablename__ = 'well_known_files'
+    id = db.Column(db.String, primary_key=True)
+    size = db.Column(db.BigInteger)
+    content_type = db.Column(db.String(255))
+    filename = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False)
+    storage_directory = db.Column(db.String(255), nullable=False)
+    well_known_file_type_id = db.Column(db.Integer)
+    file_source_id = db.Column(db.Integer)
+    published_at = db.Column(db.Date)
+    workflow_state = db.Column(db.String(255))
+    attachable_id = db.Column(db.Integer)
+    attachable_type = db.Column(db.String(255))
+
+class WellKnownFileType(db.Model):
+    __tablename__ = 'well_known_file_types'
+    id = db.Column(db.String, primary_key=True)
+    name = db.Column(db.String, nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False)
+
 class DonorForm(FlaskForm):
     donor = StringField('What is the name of the donor you would like to see?', validators=[DataRequired(), Length(1, 40)])
     submit = SubmitField('Submit')
@@ -443,7 +466,8 @@ def populate_metadata(specimen_name):
         'sub_image_names': [],
         'sub_image_storage_directory': [],
         'treatment': {}, 
-        'all_image_names': []
+        'all_image_names': [],
+        "spatial_blocking_plan": [],
     }
     
     if specimen.parent_id:
@@ -473,9 +497,21 @@ def populate_metadata(specimen_name):
     if specimen.storage_directory:
         specimen_data['storage_directory'] = specimen.storage_directory
 
+    # checks for presence of a spatial blocking plan
+    well_known_files = WellKnownFile.query.filter_by(attachable_id=specimen.id, attachable_type="Specimen")
+    if well_known_files.first():
+        for wkf in well_known_files:
+            wkf_type = WellKnownFileType.query.filter_by(id=wkf.well_known_file_type_id).first()
+            if wkf_type:
+                well_known_file_type = wkf_type.name
+                if well_known_file_type == "SpatialBlockingPlan":
+                    specimen_data["spatial_blocking_plan"].append(wkf.filename)
+                    image_url = f"//{specimen_data['storage_directory']}{wkf.filename}"
+                    specimen_data['image_urls'].append(image_url)
+    
     # checks for presence of single image
-    if Image.query.filter_by(specimen_id=specimen.id).first():
-        images = Image.query.filter_by(specimen_id=specimen.id)
+    images = Image.query.filter_by(specimen_id=specimen.id)
+    if images.first():
         for image in images:
             specimen_data['image_types'].append(" " + ImageTypes.query.filter_by(id=image.image_type_id).first().name)
             specimen_data['all_image_names'].append(image.zoom)
