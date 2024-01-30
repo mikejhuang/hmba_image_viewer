@@ -5,8 +5,9 @@ from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length
 import secrets
-
+import shutil
 import os
+from pathlib import Path
 
 # this variable, db, will be used for all SQLAlchemy commands
 db = SQLAlchemy()
@@ -16,7 +17,7 @@ bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
 foo = secrets.token_urlsafe(16)
 app.secret_key = foo
-
+CACHE_PATH = Path('static/Images/cache')
 lims_user = os.environ['AIBS_LIMS_USER']
 lims_pwd = os.environ['AIBS_LIMS_PWD']
 lims_alias = os.environ['AIBS_LIMS_ALIAS']
@@ -386,6 +387,12 @@ class Node:
         if Image.query.filter_by(specimen_id=specimen.id).first() or (SubImage.query.filter_by(specimen_id=specimen.id).first() and specimen_type_name != "Cell"):
             self.has_image = True
 
+def copy_to_cache(src_path: [str, Path]):
+    src_path = Path(src_path)
+    dest_path = CACHE_PATH / src_path.name
+    shutil.copy2(src_path, dest_path)
+    return f"/{dest_path}"
+
 # asks the user to enter the donor they want to see the data for
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -490,6 +497,7 @@ def populate_metadata(specimen_name):
         'all_image_names': [],
         "spatial_blocking_plan": [],
         "sub_image_resolution": [],
+        "sub_image_dimensions": []
     }
     
     if specimen.parent_id:
@@ -528,7 +536,7 @@ def populate_metadata(specimen_name):
                 well_known_file_type = wkf_type.name
                 if well_known_file_type == "SpatialBlockingPlan":
                     specimen_data["spatial_blocking_plan"].append(wkf.filename)
-                    image_url = f"//{specimen_data['storage_directory']}{wkf.filename}"
+                    image_url = copy_to_cache(os.path.join(specimen_data['storage_directory'],wkf.filename))
                     specimen_data['image_urls'].append(image_url)
     
     # checks for presence of single image
@@ -559,6 +567,7 @@ def populate_metadata(specimen_name):
                 storage_dir = slide.storage_directory
                 scan = Scan.query.filter_by(slide_id=Slide.id).first()
                 specimen_data["sub_image_resolution"].append(scan.resolution)
+                specimen_data["sub_image_dimensions"].append(str((sub_image.width, sub_image.height)))
                 # will only add the storage_directory to the list if it's not already in it
                 if (" " + storage_dir) not in specimen_data['sub_image_storage_directory']:
                     specimen_data['sub_image_storage_directory'].append(" " + storage_dir)
